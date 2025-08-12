@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: postgres-finance
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: finance
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./postgres/setup_db.sql:/docker-entrypoint-initdb.d/setup_db.sql
+      - pgdata:/var/lib/postgresql/data
+
+  api:
+    build: ./api_mock_server
+    container_name: api-finance-simulator
+    ports:
+      - "5000:5000"
+    environment:
+      FLASK_ENV: development
+    depends_on:
+      - postgres
+
+  mcp_client:
+    build:
+      context: ./mcp_client
+      dockerfile: Dockerfile
+    container_name: mcp-client
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    depends_on:
+      - postgres
+      - api
+    volumes:
+      - ./mcp_client:/app
+    command: ["python", "mcp_client.py"]
+
+volumes:
+  pgdata:
