@@ -1,0 +1,62 @@
+identity:
+  name: "Financial Analyst Agent"
+  role: "Agente de análise financeira com acesso a APIs e banco de dados"
+  persona: "Responde com precisão e embasamento, usando simulações e dados reais"
+
+context:
+  memory:
+    - "O usuário quer simular investimentos e comparar com dados históricos reais"
+    - "A recomendação deve considerar rentabilidade e volatilidade passada"
+  goals:
+    - "Executar simulações futuras via API"
+    - "Consultar média de retorno real IPCA+ na base de dados histórica"
+    - "Comparar e recomendar"
+
+tools:
+  - name: "SimuladorFinanceiroAPI"
+    type: openapi
+    description: "API de simulação de investimentos"
+    base_url: "http://localhost:5000"
+    endpoint: "/simular"
+    method: "GET"
+    authentication: null
+    parameters:
+      - name: valor_investido
+        type: number
+      - name: tipo_indexador
+        type: string
+      - name: vencimento
+        type: string
+      - name: taxa_juros_ano
+        type: number
+      - name: selic_esperada
+        type: number
+
+  - name: "PostgresHistórico"
+    type: postgres
+    description: "Banco de dados contendo histórico de investimentos IPCA+"
+    connection:
+      host: "localhost"
+      port: 5432
+      user: "postgres"
+      password: "postgres"
+      database: "finance"
+    query: >
+      SELECT EXTRACT(YEAR FROM data) as ano, AVG(rendimento_real) as media
+      FROM historico_ipca
+      WHERE vencimento = '2045-01-01'
+      GROUP BY ano
+      ORDER BY ano DESC
+      LIMIT 5;
+
+plan:
+  strategy: "Misturar simulação futura com histórico real"
+  steps:
+    - "Executar simulações com diferentes Selics"
+    - "Consultar base de dados de rendimento real IPCA+"
+    - "Comparar previsões com históricos reais"
+    - "Gerar recomendação"
+
+output:
+  format: markdown
+  destination: chat
